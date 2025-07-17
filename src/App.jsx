@@ -190,6 +190,11 @@ function App() {
     setShowPortfolio(false);
   }
 
+  function handleLogoClick() {
+    setShowPortfolio(false);
+    setShowModal(false);
+  }
+
   // Close modal on Esc or click outside
   useEffect(() => {
     function handleKeyDown(e) {
@@ -222,7 +227,7 @@ function App() {
       {/* Navigation */}
       <nav className="navbar">
         <div className="nav-container">
-          <div className="nav-logo">
+          <div className="nav-logo" style={{ cursor: 'pointer' }} onClick={handleLogoClick}>
             <img src="/artsee-logo.png" alt="Artsee Logo" className="logo-inline" />
             <span className="brand-name">Artsee</span>
           </div>
@@ -715,6 +720,7 @@ function App() {
               localStorage.removeItem('artseePortfolio');
               setPortfolioData(null);
               setShowPortfolio(false);
+              setShowModal(false);
               alert('Portfolio deleted.');
             }}
           />
