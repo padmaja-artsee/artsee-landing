@@ -8,7 +8,7 @@ function App() {
   const [userName, setUserName] = useState('')
   const [step, setStep] = useState(1)
   const [selectedGenres, setSelectedGenres] = useState([])
-  const [socials, setSocials] = useState({ instagram: '', twitter: '', other: '' })
+  const [socials, setSocials] = useState({ instagram: '', facebook: '', youtube: '', linkedin: '', tiktok: '', bandcamp: '', other: '' });
   const [mediaFiles, setMediaFiles] = useState([])
   const [bioImage, setBioImage] = useState(null)
   const [aboutInput, setAboutInput] = useState('')
@@ -20,6 +20,8 @@ function App() {
   const modalRef = useRef(null)
   const [showPortfolio, setShowPortfolio] = useState(false);
   const [portfolioData, setPortfolioData] = useState(null);
+  const [customGenre, setCustomGenre] = useState('');
+  const [bioExpanded, setBioExpanded] = useState(false);
 
   const genres = [
     'Visual Art',
@@ -36,16 +38,25 @@ function App() {
   ]
 
   function handleGenreChange(genre) {
-    setSelectedGenres(prev =>
-      prev.includes(genre)
-        ? prev.filter(g => g !== genre)
-        : [...prev, genre]
-    )
+    if (genre === 'Other') {
+      if (selectedGenres.includes('Other')) {
+        setSelectedGenres(prev => prev.filter(g => g !== 'Other'));
+        setCustomGenre('');
+      } else {
+        setSelectedGenres(prev => [...prev, 'Other']);
+      }
+    } else {
+      setSelectedGenres(prev =>
+        prev.includes(genre)
+          ? prev.filter(g => g !== genre)
+          : [...prev, genre]
+      );
+    }
   }
 
   function handleSocialChange(e) {
-    const { name, value } = e.target
-    setSocials(prev => ({ ...prev, [name]: value }))
+    const { name, value } = e.target;
+    setSocials(prev => ({ ...prev, [name]: value }));
   }
 
   function handleMediaChange(e) {
@@ -137,11 +148,16 @@ function App() {
         base64: await fileToBase64(file)
       }))
     );
+    let genresToSave = selectedGenres.slice();
+    if (genresToSave.includes('Other') && customGenre.trim()) {
+      genresToSave = genresToSave.filter(g => g !== 'Other');
+      genresToSave.push(customGenre.trim());
+    }
     const data = {
       userName,
       tagline: '',
       bioImage: bioImageBase64,
-      genres: selectedGenres,
+      genres: genresToSave,
       socials,
       mediaFiles: mediaFilesBase64,
       generatedBio
@@ -193,6 +209,13 @@ function App() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [showModal])
+
+  // Helper to limit words
+  function getWordLimitedText(text, limit) {
+    const words = text.split(/\s+/);
+    if (words.length <= limit) return text;
+    return words.slice(0, limit).join(' ') + '...';
+  }
 
   return (
     <div className="app">
@@ -341,247 +364,336 @@ function App() {
           {showModal && (
             <div className="modal-overlay">
               <div className="modal" ref={modalRef}>
-                {step === 1 && (
-                  <>
-                    <h2>Let's Get Started!</h2>
-                    <label htmlFor="userNameInput">What is your name or pseudonym?</label>
-                    <input
-                      id="userNameInput"
-                      type="text"
-                      value={userName}
-                      onChange={e => setUserName(e.target.value)}
-                      placeholder="Enter your name or pseudonym"
-                      autoFocus
-                    />
-                    <div className="modal-actions">
-                      <button
-                        className="cta-btn primary"
-                        onClick={handleNext}
-                        disabled={!userName.trim()}
-                      >
-                        Next
-                      </button>
-                      <button className="cta-btn secondary" onClick={handleCloseModal}>
-                        Cancel
-                      </button>
-                    </div>
-                  </>
-                )}
-                {step === 2 && (
-                  <>
-                    <h2>Select Your Genre(s)</h2>
-                    <div className="genre-list">
-                      {genres.map(genre => (
-                        <label key={genre} className="genre-checkbox">
-                          <input
-                            type="checkbox"
-                            value={genre}
-                            checked={selectedGenres.includes(genre)}
-                            onChange={() => handleGenreChange(genre)}
-                          />
-                          {genre}
-                        </label>
-                      ))}
-                    </div>
-                    <div className="modal-actions">
-                      <button className="cta-btn secondary" onClick={handleBack}>
-                        Back
-                      </button>
-                      <button
-                        className="cta-btn primary"
-                        onClick={handleNext}
-                        disabled={selectedGenres.length === 0}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </>
-                )}
-                {step === 3 && (
-                  <>
-                    <h2>Share Your Social Media Handles</h2>
-                    <label htmlFor="instagramInput">Instagram</label>
-                    <input
-                      id="instagramInput"
-                      name="instagram"
-                      type="text"
-                      value={socials.instagram}
-                      onChange={handleSocialChange}
-                      placeholder="@yourinsta"
-                    />
-                    <label htmlFor="twitterInput">Twitter</label>
-                    <input
-                      id="twitterInput"
-                      name="twitter"
-                      type="text"
-                      value={socials.twitter}
-                      onChange={handleSocialChange}
-                      placeholder="@yourtwitter"
-                    />
-                    <label htmlFor="otherInput">Other</label>
-                    <input
-                      id="otherInput"
-                      name="other"
-                      type="text"
-                      value={socials.other}
-                      onChange={handleSocialChange}
-                      placeholder="Other handle or link"
-                    />
-                    <div className="modal-actions">
-                      <button className="cta-btn secondary" onClick={handleBack}>
-                        Back
-                      </button>
-                      <button
-                        className="cta-btn primary"
-                        onClick={handleNext}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </>
-                )}
-                {step === 4 && (
-                  <>
-                    <h2>Upload Your Media</h2>
-                    <label htmlFor="mediaInput">Add images or videos from your device</label>
-                    <input
-                      id="mediaInput"
-                      type="file"
-                      accept="image/*,video/*"
-                      multiple
-                      style={{ display: 'none' }}
-                      ref={fileInputRef}
-                      onChange={handleMediaChange}
-                    />
-                    <button className="cta-btn secondary" type="button" onClick={handleAddMoreClick}>
-                      Add More
-                    </button>
-                    {mediaFiles.length > 0 && (
-                      <div className="media-preview-list">
-                        {mediaFiles.map((file, idx) => (
-                          <div key={idx} className="media-preview-item">
-                            {file.type.startsWith('image') ? (
-                              <img src={URL.createObjectURL(file)} alt={file.name} />
-                            ) : (
-                              <video src={URL.createObjectURL(file)} controls width="80" />
-                            )}
-                            <div className="media-filename">{file.name}</div>
-                          </div>
+                <div className="modal-content-scroll">
+                  {step === 1 && (
+                    <>
+                      <h2>Let's Get Started!</h2>
+                      <label htmlFor="userNameInput">What is your name or pseudonym?</label>
+                      <input
+                        id="userNameInput"
+                        type="text"
+                        value={userName}
+                        onChange={e => setUserName(e.target.value)}
+                        placeholder="Enter your name or pseudonym"
+                        autoFocus
+                      />
+                      <div className="modal-actions">
+                        <button
+                          className="cta-btn primary"
+                          onClick={handleNext}
+                          disabled={!userName.trim()}
+                        >
+                          Next
+                        </button>
+                        <button className="cta-btn secondary" onClick={handleCloseModal}>
+                          Cancel
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {step === 2 && (
+                    <>
+                      <h2>Select Your Genre(s)</h2>
+                      <div className="genre-list">
+                        {genres.map(genre => (
+                          <label key={genre} className="genre-checkbox">
+                            <input
+                              type="checkbox"
+                              value={genre}
+                              checked={selectedGenres.includes(genre)}
+                              onChange={() => handleGenreChange(genre)}
+                            />
+                            {genre}
+                          </label>
                         ))}
                       </div>
-                    )}
-                    <div className="modal-actions">
-                      <button className="cta-btn secondary" onClick={handleBack}>
-                        Back
-                      </button>
-                      <button
-                        className="cta-btn primary"
-                        onClick={handleNext}
-                        disabled={mediaFiles.length === 0}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </>
-                )}
-                {step === 5 && (
-                  <>
-                    <h2>Upload Your Bio Image</h2>
-                    <label htmlFor="bioImageInput">Select a profile image to represent you</label>
-                    <input
-                      id="bioImageInput"
-                      type="file"
-                      accept="image/*"
-                      style={{ display: 'none' }}
-                      ref={bioImageInputRef}
-                      onChange={handleBioImageChange}
-                    />
-                    <button className="cta-btn secondary" type="button" onClick={handleBioImageClick}>
-                      {bioImage ? 'Change Image' : 'Select Image'}
-                    </button>
-                    {bioImage && (
-                      <div className="bio-image-preview">
-                        <img src={URL.createObjectURL(bioImage)} alt="Bio Preview" />
-                        <div className="media-filename">{bioImage.name}</div>
-                      </div>
-                    )}
-                    <div className="modal-actions">
-                      <button className="cta-btn secondary" onClick={handleBack}>
-                        Back
-                      </button>
-                      <button
-                        className="cta-btn primary"
-                        onClick={handleNext}
-                        disabled={!bioImage}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </>
-                )}
-                {step === 6 && (
-                  <>
-                    <h2>Add Something About You</h2>
-                    <label htmlFor="aboutInput">You may add bullets, keywords, or a website link which has your bio.</label>
-                    <textarea
-                      id="aboutInput"
-                      value={aboutInput}
-                      onChange={e => setAboutInput(e.target.value)}
-                      placeholder={"e.g. Painter, digital artist, loves nature, www.mywebsite.com/bio"}
-                      rows={4}
-                      style={{ margin: '0.7rem 0 1.2rem 0', resize: 'vertical' }}
-                    />
-                    <div className="modal-actions">
-                      <button className="cta-btn secondary" onClick={handleBack}>
-                        Back
-                      </button>
-                      <button
-                        className="cta-btn primary"
-                        onClick={handleGenerateBio}
-                        disabled={!aboutInput.trim() || bioLoading}
-                      >
-                        {bioLoading ? 'Generating...' : 'Generate Bio'}
-                      </button>
-                    </div>
-                    {bioError && (
-                      <div className="generated-bio" style={{ color: 'red' }}>{bioError}</div>
-                    )}
-                    {generatedBio && (
-                      <div className="generated-bio">
-                        <h3>Your AI-Generated Bio</h3>
-                        <p>{generatedBio.replaceAll("[Artist's Name]", userName || 'The Artist')}</p>
-                        <div className="modal-actions">
-                          <button className="cta-btn primary" onClick={() => setStep(7)}>
-                            Next
-                          </button>
+                      {selectedGenres.includes('Other') && (
+                        <div style={{ margin: '1rem 0' }}>
+                          <textarea
+                            placeholder="Enter your custom genre(s)"
+                            value={customGenre}
+                            onChange={e => setCustomGenre(e.target.value)}
+                            rows={2}
+                            style={{ width: '100%', borderRadius: 8, border: '1px solid #c7d2fe', padding: '0.7rem', fontSize: '1rem' }}
+                          />
+                          <div style={{ fontSize: '0.95rem', color: '#6b7280', marginTop: 4 }}>
+                            This will be added to your portfolio as a genre.
+                          </div>
                         </div>
+                      )}
+                      <div className="modal-actions">
+                        <button className="cta-btn secondary" onClick={handleBack}>
+                          Back
+                        </button>
+                        <button
+                          className="cta-btn primary"
+                          onClick={handleNext}
+                          disabled={selectedGenres.length === 0 || (selectedGenres.includes('Other') && !customGenre.trim())}
+                        >
+                          Next
+                        </button>
                       </div>
-                    )}
-                  </>
-                )}
-                {step === 7 && (
-                  <>
-                    <h2>Save Your Portfolio</h2>
-                    <p>Click below to save your portfolio. You can view or download it at any time.</p>
-                    <div className="modal-actions">
-                      <button className="cta-btn secondary" onClick={handleBack}>
-                        Back
-                      </button>
-                      <button
-                        className="cta-btn primary"
-                        onClick={() => {
-                          handleSavePortfolio();
-                          setShowModal(false);
-                          setTimeout(() => {
-                            setShowPortfolio(true);
-                          }, 200);
-                        }}
-                      >
-                        Save Portfolio
-                      </button>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
+                  {step === 3 && (
+                    <>
+                      <h2>Share Your Social Media Handles</h2>
+                      <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'max-content 1fr',
+                        gap: '1.2rem 1.5rem',
+                        alignItems: 'center',
+                        margin: '1.5rem 0'
+                      }}>
+                        <label htmlFor="instagramInput" style={{fontWeight: 500, color: '#374151'}}>Instagram</label>
+                        <input
+                          id="instagramInput"
+                          name="instagram"
+                          type="text"
+                          value={socials.instagram}
+                          onChange={handleSocialChange}
+                          placeholder="Instagram link or handle"
+                          style={{ width: '100%' }}
+                        />
+                        <label htmlFor="facebookInput" style={{fontWeight: 500, color: '#374151'}}>Facebook</label>
+                        <input
+                          id="facebookInput"
+                          name="facebook"
+                          type="text"
+                          value={socials.facebook}
+                          onChange={handleSocialChange}
+                          placeholder="Facebook link"
+                          style={{ width: '100%' }}
+                        />
+                        <label htmlFor="youtubeInput" style={{fontWeight: 500, color: '#374151'}}>YouTube</label>
+                        <input
+                          id="youtubeInput"
+                          name="youtube"
+                          type="text"
+                          value={socials.youtube}
+                          onChange={handleSocialChange}
+                          placeholder="YouTube link"
+                          style={{ width: '100%' }}
+                        />
+                        <label htmlFor="linkedinInput" style={{fontWeight: 500, color: '#374151'}}>LinkedIn</label>
+                        <input
+                          id="linkedinInput"
+                          name="linkedin"
+                          type="text"
+                          value={socials.linkedin}
+                          onChange={handleSocialChange}
+                          placeholder="LinkedIn link"
+                          style={{ width: '100%' }}
+                        />
+                        <label htmlFor="tiktokInput" style={{fontWeight: 500, color: '#374151'}}>TikTok</label>
+                        <input
+                          id="tiktokInput"
+                          name="tiktok"
+                          type="text"
+                          value={socials.tiktok}
+                          onChange={handleSocialChange}
+                          placeholder="TikTok link"
+                          style={{ width: '100%' }}
+                        />
+                        <label htmlFor="bandcampInput" style={{fontWeight: 500, color: '#374151'}}>Bandcamp</label>
+                        <input
+                          id="bandcampInput"
+                          name="bandcamp"
+                          type="text"
+                          value={socials.bandcamp}
+                          onChange={handleSocialChange}
+                          placeholder="Bandcamp link"
+                          style={{ width: '100%' }}
+                        />
+                        <label htmlFor="otherInput" style={{fontWeight: 500, color: '#374151'}}>Other</label>
+                        <input
+                          id="otherInput"
+                          name="other"
+                          type="text"
+                          value={socials.other}
+                          onChange={handleSocialChange}
+                          placeholder="Other handle or link"
+                          style={{ width: '100%' }}
+                        />
+                      </div>
+                      <div className="modal-actions">
+                        <button className="cta-btn secondary" onClick={handleBack}>
+                          Back
+                        </button>
+                        <button
+                          className="cta-btn primary"
+                          onClick={handleNext}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {step === 4 && (
+                    <>
+                      <h2>Upload Your Media</h2>
+                      <label htmlFor="mediaInput">Add images or videos from your device</label>
+                      <input
+                        id="mediaInput"
+                        type="file"
+                        accept="image/*,video/*"
+                        multiple
+                        style={{ display: 'none' }}
+                        ref={fileInputRef}
+                        onChange={handleMediaChange}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.2rem' }}>
+                        <button className="cta-btn secondary" type="button" onClick={handleAddMoreClick}>
+                          {mediaFiles.length === 0 ? 'Choose Media' : 'Add More'}
+                        </button>
+                      </div>
+                      {mediaFiles.length > 0 && (
+                        <div className="media-preview-list">
+                          {mediaFiles.map((file, idx) => (
+                            <div key={idx} className="media-preview-item">
+                              {file.type.startsWith('image') ? (
+                                <img src={URL.createObjectURL(file)} alt={file.name} />
+                              ) : (
+                                <video src={URL.createObjectURL(file)} controls width="80" />
+                              )}
+                              <div className="media-filename">{file.name}</div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ marginTop: '2rem' }} />
+                      <div className="modal-actions">
+                        <button className="cta-btn secondary" onClick={handleBack}>
+                          Back
+                        </button>
+                        <button
+                          className="cta-btn primary"
+                          onClick={handleNext}
+                          disabled={mediaFiles.length === 0}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {step === 5 && (
+                    <>
+                      <h2>Upload Your Bio Image</h2>
+                      <label htmlFor="bioImageInput">Select a profile image to represent you</label>
+                      <input
+                        id="bioImageInput"
+                        type="file"
+                        accept="image/*"
+                        style={{ display: 'none' }}
+                        ref={bioImageInputRef}
+                        onChange={handleBioImageChange}
+                      />
+                      <div style={{ display: 'flex', justifyContent: 'center', marginTop: '1.2rem' }}>
+                        <button className="cta-btn secondary" type="button" onClick={handleBioImageClick}>
+                          {bioImage ? 'Change Image' : 'Select Image'}
+                        </button>
+                      </div>
+                      {bioImage && (
+                        <div className="bio-image-preview">
+                          <img src={URL.createObjectURL(bioImage)} alt="Bio Preview" />
+                          <div className="media-filename">{bioImage.name}</div>
+                        </div>
+                      )}
+                      <div style={{ marginTop: '2rem' }} />
+                      <div className="modal-actions">
+                        <button className="cta-btn secondary" onClick={handleBack}>
+                          Back
+                        </button>
+                        <button
+                          className="cta-btn primary"
+                          onClick={handleNext}
+                          disabled={!bioImage}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    </>
+                  )}
+                  {step === 6 && (
+                    <>
+                      <h2>Add Something About You</h2>
+                      <label htmlFor="aboutInput">You may add bullets, keywords, or a website link which has your bio.</label>
+                      <div style={{ display: 'flex', justifyContent: 'center', margin: '1.2rem 0' }}>
+                        <textarea
+                          id="aboutInput"
+                          value={aboutInput}
+                          onChange={e => setAboutInput(e.target.value)}
+                          placeholder={"e.g. Painter, digital artist, loves nature, www.mywebsite.com/bio"}
+                          rows={4}
+                          style={{ width: '60%', minWidth: 260, maxWidth: 500, borderRadius: 8, border: '1px solid #c7d2fe', padding: '0.7rem', fontSize: '1rem' }}
+                        />
+                      </div>
+                      <div className="modal-actions">
+                        <button className="cta-btn secondary" onClick={handleBack}>
+                          Back
+                        </button>
+                        <button
+                          className="cta-btn primary"
+                          onClick={handleGenerateBio}
+                          disabled={!aboutInput.trim() || bioLoading}
+                        >
+                          {bioLoading ? 'Generating...' : 'Generate Bio'}
+                        </button>
+                      </div>
+                      {bioError && (
+                        <div className="generated-bio" style={{ color: 'red' }}>{bioError}</div>
+                      )}
+                      {generatedBio && (
+                        <div className="generated-bio">
+                          <h3>Your AI-Generated Bio</h3>
+                          <p style={{ whiteSpace: 'pre-line' }}>
+                            {bioExpanded
+                              ? generatedBio
+                              : getWordLimitedText(generatedBio, 250)}
+                          </p>
+                          {generatedBio.split(/\s+/).length > 250 && (
+                            <button
+                              className="cta-btn secondary"
+                              style={{ marginTop: 8 }}
+                              onClick={() => setBioExpanded(e => !e)}
+                            >
+                              {bioExpanded ? 'Show Less' : 'Read More'}
+                            </button>
+                          )}
+                          <div className="modal-actions">
+                            <button className="cta-btn primary" onClick={() => setStep(7)}>
+                              Next
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {step === 7 && (
+                    <>
+                      <h2>Save Your Portfolio</h2>
+                      <p>Click below to save your portfolio. You can view or download it at any time.</p>
+                      <div className="modal-actions">
+                        <button className="cta-btn secondary" onClick={handleBack}>
+                          Back
+                        </button>
+                        <button
+                          className="cta-btn primary"
+                          onClick={() => {
+                            handleSavePortfolio();
+                            setShowModal(false);
+                            setTimeout(() => {
+                              setShowPortfolio(true);
+                            }, 200);
+                          }}
+                        >
+                          Save Portfolio
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+                {/* modal-actions for steps that need it, already handled above */}
               </div>
             </div>
           )}
